@@ -46,6 +46,7 @@ We chose FAISS as the vector store for Recall AI.
 - We are fine to go with FAISS and use a extranl meta data filetering.
 
 
+
 ---
 
 ## Consequences
