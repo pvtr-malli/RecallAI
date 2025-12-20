@@ -37,6 +37,8 @@ class SearchRequest(BaseModel):
 
     query: str
     top_k: int = 5
+    search_in: str = "both"  # Options: "documents", "code", "both"
+    mode: str = "search"  # Options: "search", "answer"
 
 
 class SearchResult(BaseModel):
@@ -58,3 +60,14 @@ class SearchResponse(BaseModel):
 
     query: str
     results: list[SearchResult]
+
+
+class AnswerResponse(BaseModel):
+    """
+    Response from answer operation (with LLM).
+    """
+
+    query: str
+    answer: str
+    sources: list[SearchResult]
+    file_references: list[dict[str, str]]

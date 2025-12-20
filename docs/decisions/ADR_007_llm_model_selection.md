@@ -12,6 +12,7 @@ RecallAI uses a local Large Language Model (LLM) to answer user questions based 
 The LLM must operate:
 
 * Fully **local and offline**
+* The file content should not leave the laptop - privacy needed.
 * With **limited system resources**
 * As a **question-answering assistant**, not a text generator
 * With predictable behavior and low latency

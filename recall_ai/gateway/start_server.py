@@ -18,13 +18,12 @@ from recall_ai.processing.file_processor import (
     process_code_file,
     process_notebook_file
 )
+from recall_ai.processing.search_processor import SearchProcessor
 from recall_ai.gateway.models import (
     UpdateFoldersRequest,
     UpdateFoldersResponse,
     IndexResponse,
-    SearchRequest,
-    SearchResult,
-    SearchResponse
+    SearchRequest
 )
 from recall_ai.utils.logger import get_logger
 
@@ -32,6 +31,31 @@ logger = get_logger(__name__)
 
 
 app = FastAPI(title="RecallAI", description="Intelligent local file search system.")
+
+
+# Initialize search processor once at module load time
+def _initialize_search_processor():
+    """Initialize search processor on module load."""
+    logger.info("Initializing search processor")
+    project_root = Path(__file__).parent.parent.parent
+    config_path = project_root / "config.yaml"
+    config = load_config(config_path)
+
+    models_dir = (project_root / config.models_dir).resolve()
+    indexes_dir = (project_root / config.indexes_dir).resolve()
+    db_path = (project_root / config.db_path).resolve()
+
+    processor = SearchProcessor(
+        models_dir=models_dir,
+        indexes_dir=indexes_dir,
+        db_path=db_path
+    )
+    logger.info("Search processor initialized and ready")
+    return processor
+
+
+# Global search processor instance
+search_processor = _initialize_search_processor()
 
 
 @app.post("/index", response_model=IndexResponse)
@@ -195,73 +219,20 @@ def update_folders(request: UpdateFoldersRequest) -> UpdateFoldersResponse:
     )
 
 
-@app.post("/search", response_model=SearchResponse)
-def search_documents(request: SearchRequest) -> SearchResponse:
+@app.post("/search")
+def search_documents(request: SearchRequest):
     """
     Search for documents and code using semantic similarity.
-    Searches both document and code indexes and combines results.
+    Supports two modes:
+    - search: Returns ranked search results
+    - answer: Uses LLM to generate answer from search results
 
-    param request: Search request with query and top_k.
+    param request: Search request with query, top_k, search_in, and mode.
     """
-    logger.info(f"Searching for: {request.query}")
-    project_root = Path(__file__).parent.parent.parent
-    config_path = project_root / "config.yaml"
-    config = load_config(config_path)
+    logger.info(f"Searching for: {request.query} (mode={request.mode})")
 
-    # Resolve absolute paths from project root.
-    models_dir = (project_root / config.models_dir).resolve()
-    indexes_dir = (project_root / config.indexes_dir).resolve()
-    db_path = (project_root / config.db_path).resolve()
-
-    # Initialize embedders, FAISS indexes, and metadata store.
-    doc_embedder = DocumentEmbedder(models_dir)
-    doc_index_path = indexes_dir / "documents.faiss"
-    doc_faiss = FAISSManager(dimension=384, index_path=doc_index_path)
-
-    code_embedder = CodeEmbedder(models_dir)
-    code_index_path = indexes_dir / "code.faiss"
-    code_faiss = FAISSManager(dimension=768, index_path=code_index_path)
-
-    metadata_store = MetadataStore(db_path)
-
-    # Search both indexes and combine results.
-    all_results: list[tuple[float, dict]] = []
-
-    # Search document index.
-    if doc_faiss.get_count() > 0:
-        doc_query_embedding = doc_embedder.embed_single(request.query)
-        doc_distances, doc_indices = doc_faiss.search(doc_query_embedding, k=request.top_k)
-        for distance, faiss_idx in zip(doc_distances, doc_indices):
-            chunk_data = metadata_store.get_chunk_by_faiss_index(int(faiss_idx))
-            if chunk_data:
-                all_results.append((float(distance), chunk_data))
-
-    # Search code index.
-    if code_faiss.get_count() > 0:
-        code_query_embedding = code_embedder.embed_single(request.query)
-        code_distances, code_indices = code_faiss.search(code_query_embedding, k=request.top_k)
-        for distance, faiss_idx in zip(code_distances, code_indices):
-            chunk_data = metadata_store.get_chunk_by_faiss_index(int(faiss_idx))
-            if chunk_data:
-                all_results.append((float(distance), chunk_data))
-
-    # Sort combined results by score (distance) and take top_k.
-    all_results.sort(key=lambda x: x[0])
-    top_results = all_results[:request.top_k]
-
-    # Convert to SearchResult objects.
-    results: list[SearchResult] = []
-    for score, chunk_data in top_results:
-        results.append(SearchResult(
-            chunk_text=chunk_data["chunk_text"],
-            file_path=chunk_data["file_path"],
-            file_type=chunk_data["file_type"],
-            chunk_index=chunk_data["chunk_index"],
-            score=score
-        ))
-
-    logger.info(f"Found {len(results)} results for query: {request.query}")
-    return SearchResponse(query=request.query, results=results)
+    # Use global search processor (embedders already loaded in memory)
+    return search_processor.process_search(request)
 
 
 @app.get("/health")
