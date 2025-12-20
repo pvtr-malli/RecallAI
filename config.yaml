@@ -1,6 +1,6 @@
 indexing:
   folders:
-  - ~/projects/Learnings/notes/3_AI_agents
+  - ~/projects/Learnings/notes/
   exclude:
   - .git
   - node_modules
