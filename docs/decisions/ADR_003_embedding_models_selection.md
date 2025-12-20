@@ -91,6 +91,7 @@ Although `all-mpnet-base-v2` showed slightly better recall, `all-MiniLM-L6-v2` p
 - Specifically trained for code embedding tasks
 - Supports longer sequences (8192 tokens) - ideal for code files
 - Best performance on code retrieval benchmarks
+- they are epecting a text query vector, so align with our requreiment of giving text and searching code.
 
 ---
 

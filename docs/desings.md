@@ -170,54 +170,67 @@ File Change Detection:
                    └─► DELETE FROM files WHERE file_path = ?
 ```
 
-## 🔍 Query Flow. TODO
+## 🔍 Query Flow
 
 ```
-START: User query "How do I handle errors?"
-    │
-    ├─► 1. Parse query
-    │       │
-    │       ├─► Extract filters (if any)
-    │       │   Example: "Search in PDF files"
-    │       │
-    │       └─► Query text: "How do I handle errors?"
-    │
-    ├─► 2. Generate query embedding
-    │       │
-    │       ├─► Load embedding model
-    │       ├─► Encode query → vector (384 dim)
-    │       └─► Output: numpy array
-    │
-    ├─► 3. Search FAISS index
-    │       │
-    │       ├─► Similarity search (top k=50)
-    │       ├─► Get chunk_ids with scores
-    │       └─► Output: [(chunk_id, score), ...]
-    │
-    ├─► 4. Apply metadata filters (SQLite)
-    │       │
-    │       ├─► Query: SELECT * FROM chunks
-    │       │          WHERE chunk_id IN (...)
-    │       │          AND file_type = 'pdf'  -- if filtered
-    │       │
-    │       └─► Output: List of matching chunks
-    │
-    ├─► 5. Determine mode
-    │       │
-    │       ├─────► SEARCH MODE
-    │       │       │
-    │       │       ├─► Return top N results
-    │       │       ├─► Format: file_path + snippet
-    │       │       └─► END
-    │       │
-    │       └─────► ANSWER MODE
-    │               │
-    │               ├─► Retrieve top chunks as context
-    │               ├─► Send to LLM (local model)
-    │               ├─► Generate answer
-    │               └─► Return: answer + sources
-    │
-    └─► END: Return results to user
+                          User (CLI / UI)
+                                 │
+                                 ▼
+                        Query API (FastAPI)
+                                 │
+                                 ▼
+                           Parse Query
+                      (query, top_k, search_in)
+                                 │
+                                 ▼
+                    Validate search_in filter
+                   (documents | code | both)
+                                 │
+                                 ▼
+                    Embed Query (SBERT)
+                                 │
+                  ┌──────────────┼──────────────┐
+                  │                             │
+                  ▼                             ▼
+      FAISS Search (Docs Index)     FAISS Search (Code Index)
+       [if search_in allows]          [if search_in allows]
+                  │                             │
+                  └──────────────┬──────────────┘
+                                 │
+                                 ▼
+                        Merge & Rank Top-K
+                                 │
+                                 ▼
+                     Fetch Metadata (SQLite)
+                                 │
+                                 ▼
+                         Build Context
+                  ┌──────────────┼──────────────┐
+                  │              │              │
+                  ▼              ▼              ▼
+          Deduplicate      Format with    Add file
+            chunks           sources      references
+                  │              │              │
+                  └──────────────┼──────────────┘
+                                 │
+                  ┌──────────────┼──────────────┐
+                  │                             │
+                  ▼                             ▼
+           [Search Mode]                 [Answer Mode]
+                  │                             │
+                  │                             ▼
+                  │                    Build LLM Prompt
+                  │                             │
+                  │                             ▼
+                  │              LLM (Ollama/OpenAI/Anthropic)
+                  │                             │
+                  ▼                             ▼
+         Return File metadata        Return answer + sources
+                  │                             │
+                  └──────────────┬──────────────┘
+                                 │
+                                 ▼
+                        Return to User
 ```
 
 ---
