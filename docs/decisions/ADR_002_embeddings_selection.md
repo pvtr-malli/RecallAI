@@ -96,7 +96,7 @@ Each embedding model will maintain its **own FAISS index**, ensuring that vector
 
 ---
 
-## Implementation Notes
+## Implementation Notes - While searching kep this in mind.
 
 * Embedding spaces must remain **fully isolated**
 * Queries will be routed to:

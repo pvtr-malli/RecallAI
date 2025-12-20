@@ -138,6 +138,7 @@ User (CLI / UI)
 ```
 ## 🔄 Incremental Re-indexing
 
+(For meta data table - vectorDB will have the old chunks vectors.)
 ```
 File Change Detection:
 

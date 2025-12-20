@@ -1,4 +1,4 @@
-# ADR-006: Code and Notebook Ingestion Strategy
+# ADR-004: Code and Notebook Ingestion Strategy
 
 ## Status
 

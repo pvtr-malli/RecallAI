@@ -1,0 +1,12 @@
+indexing:
+  folders:
+  - ~/projects/Learnings/notes/3_AI_agents
+  exclude:
+  - .git
+  - node_modules
+  - __pycache__
+  - .venv
+  - venv
+models_dir: models
+indexes_dir: indexes
+db_path: indexes/metadata.db

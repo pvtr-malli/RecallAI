@@ -1,4 +1,4 @@
-# ADR-005: Embedding Model Selection and Evaluation
+# ADR-003: Embedding Model Selection and Evaluation
 
 ## Status
 
