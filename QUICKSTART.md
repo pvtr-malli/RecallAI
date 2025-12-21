@@ -1,16 +1,19 @@
 # RecallAI Quick Start
 
-## Prerequisites
+## Setup
 
-1. **Ollama must be running**:
-   ```bash
-   ollama serve
-   ```
+```bash
+# 1. Install uv
+brew install uv
 
-2. **Pull the model** (one time):
-   ```bash
-   ollama pull llama3.1:8b-instruct-q4_0
-   ```
+# 2. Install dependencies
+uv sync
+
+# 3. Install Ollama and pull model
+brew install ollama
+ollama serve  # In one terminal
+ollama pull llama3.1:8b-instruct-q4_0  # In another terminal
+```
 
 ## Run RecallAI (Single Command!)
 
