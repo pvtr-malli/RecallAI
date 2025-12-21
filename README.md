@@ -38,7 +38,7 @@ RecallAI transforms your local files into a searchable knowledge base. It uses s
 
 ## Design and Design Decisions
 
-- Every 
+- Every single design decisions and ADR files are present here - [docs/decisions](docs/decisions)  
 📐📐📐 See [docs/designs.md](docs/designs.md) for detailed design decisions and architecture choices.
 
 ## Architecture
