@@ -1,5 +1,6 @@
 """LLM client for RecallAI - uses Ollama with Llama 3.1 8B Instruct."""
 
+import os
 from typing import Optional
 import requests
 from recall_ai.utils.logger import get_logger
@@ -22,10 +23,11 @@ class LLMClient:
         param base_url: Base URL for Ollama API (defaults to http://localhost:11434).
         """
         self.provider = "ollama"
-        self.base_url = base_url if base_url else "http://localhost:11434"
+        # Support environment variable for Docker/container deployments
+        self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self.model = model if model else "llama3.1:8b-instruct-q4_0"
 
-        logger.info(f"Initialized LLM client: provider={self.provider}, model={self.model}")
+        logger.info(f"Initialized LLM client: provider={self.provider}, model={self.model}, base_url={self.base_url}")
 
     def generate_answer(self, query: str, context: str) -> str:
         """
@@ -78,10 +80,15 @@ Answer:"""
         }
 
         try:
-            response = requests.post(url, json=payload, timeout=60)
+            logger.info("Calling Ollama API (may take 30-60s for first request)...")
+            response = requests.post(url, json=payload, timeout=180)  # 3 minutes timeout
             response.raise_for_status()
             result = response.json()
+            logger.info("Successfully received response from Ollama")
             return result.get("response", "")
+        except requests.exceptions.Timeout:
+            logger.error("Ollama API timeout after 180 seconds")
+            raise RuntimeError("Ollama timeout - model loading or query too complex. Try again or use search mode.")
         except requests.exceptions.RequestException as e:
             logger.error(f"Ollama API error: {e}")
             raise RuntimeError(f"Failed to call Ollama API: {e}")
