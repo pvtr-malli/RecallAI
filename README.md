@@ -38,6 +38,7 @@ RecallAI transforms your local files into a searchable knowledge base. It uses s
 
 ## Design and Design Decisions
 
+- Every 
 📐📐📐 See [docs/designs.md](docs/designs.md) for detailed design decisions and architecture choices.
 
 ## Architecture
@@ -64,11 +65,7 @@ Uses the local LLM to generate natural language answers with source citations.
 **Example:**
 <img src="images/answer_mode.png" width=800 height=500>
 
-**🧠🧠🧠You can leave a feedback which will be used for natural labling and monitoring**
-
-## How It Works
-
-
+💡 **Pro tip:** You can leave feedback (👍/👎) on results to help improve the system! - This will be used for natural labeling and monitoring.
 
 ## Requirements
 
