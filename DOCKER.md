@@ -204,36 +204,6 @@ Ensure mounted directories have correct permissions:
 chmod 755 indexes models
 ```
 
-### Out of Memory
-
-The embedding models + LLM need ~8GB RAM. If Docker has insufficient memory:
-
-1. Increase Docker memory limit (Docker Desktop → Settings → Resources)
-2. Or use native setup instead (see README.md)
-
-## Docker vs Native Setup
-
-**Use Docker when:**
-- ✅ You want containerized isolation
-- ✅ You're familiar with Docker
-- ✅ You want easy cleanup (just remove containers)
-
-**Use Native when:**
-- ✅ You want better performance
-- ✅ You need direct file system access
-- ✅ You prefer simpler debugging
-- ✅ Your files are scattered across many locations
-
-## Comparison
-
-| Feature | Docker | Native |
-|---------|--------|--------|
-| Setup complexity | Medium | Simple |
-| Performance | Good | Better |
-| File access | Via mounts | Direct |
-| Isolation | Strong | None |
-| Memory usage | Higher | Lower |
-| Cleanup | Easy | Manual |
 
 ## Next Steps
 

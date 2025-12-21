@@ -2,9 +2,80 @@
 
 import gradio as gr
 import requests
-from typing import Tuple
+import json
+import sqlite3
+from datetime import datetime
+from pathlib import Path
+from typing import Tuple, Optional
 
 API_BASE_URL = "http://localhost:8000"
+
+# Feedback database (stored in indexes folder with other persistent data)
+FEEDBACK_DB = Path("indexes/feedback.db")
+
+
+def init_feedback_db():
+    """Initialize feedback database."""
+    # Ensure indexes directory exists
+    FEEDBACK_DB.parent.mkdir(parents=True, exist_ok=True)
+
+    conn = sqlite3.connect(FEEDBACK_DB)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            query TEXT NOT NULL,
+            mode TEXT NOT NULL,
+            chunks_retrieved INTEGER NOT NULL,
+            feedback TEXT NOT NULL,
+            comment TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+# Initialize on module load
+init_feedback_db()
+
+
+def save_feedback(metadata: dict, feedback_type: str, comment: str) -> str:
+    """
+    Save user feedback to database.
+
+    param metadata: Search metadata (query, mode, chunks).
+    param feedback_type: Feedback type ("positive" or "negative").
+    param comment: Optional user comment.
+    return: Confirmation message.
+    """
+    if not metadata or "query" not in metadata:
+        return "⚠️ No search performed yet. Please run a search first."
+
+    try:
+        conn = sqlite3.connect(FEEDBACK_DB)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO feedback (timestamp, query, mode, chunks_retrieved, feedback, comment)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                datetime.now().isoformat(),
+                metadata["query"],
+                metadata["mode"],
+                metadata["chunks"],
+                feedback_type,
+                comment.strip() if comment.strip() else None
+            )
+        )
+        conn.commit()
+        conn.close()
+
+        return f"✅ Thank you for your feedback! ({feedback_type})"
+
+    except Exception as e:
+        return f"❌ Error saving feedback: {str(e)}"
 
 
 def update_folders(folders_input: str) -> str:
@@ -69,7 +140,7 @@ The files have been embedded and stored in the search index."""
         return f"❌ Error indexing files: {str(e)}"
 
 
-def search_query(query: str, mode: str, search_in: str, top_k: int) -> Tuple[str, str]:
+def search_query(query: str, mode: str, search_in: str, top_k: int) -> Tuple[str, str, dict]:
     """
     Search for documents and code.
 
@@ -77,10 +148,10 @@ def search_query(query: str, mode: str, search_in: str, top_k: int) -> Tuple[str
     param mode: Search mode ("search" or "answer").
     param search_in: Where to search ("documents", "code", "both").
     param top_k: Number of results to return.
-    return: Tuple of (results_summary, chunks_detail).
+    return: Tuple of (results_summary, chunks_detail, search_metadata).
     """
     if not query.strip():
-        return "⚠️ Please enter a search query.", ""
+        return "⚠️ Please enter a search query.", "", {}
 
     try:
         response = requests.post(
@@ -96,19 +167,28 @@ def search_query(query: str, mode: str, search_in: str, top_k: int) -> Tuple[str
         response.raise_for_status()
         result = response.json()
 
+        # Store metadata for feedback
+        metadata = {
+            "query": query,
+            "mode": mode,
+            "chunks": len(result.get("results", [])) if mode == "search" else len(result.get("file_references", []))
+        }
+
         if mode == "search":
             # Search mode: return file names/types + chunks separately
-            return _format_search_results(result)
+            summary, chunks = _format_search_results(result)
+            return summary, chunks, metadata
         else:
             # Answer mode: return answer + file names/types only
-            return _format_answer_results(result)
+            answer, _ = _format_answer_results(result)
+            return answer, "", metadata
 
     except requests.exceptions.ConnectionError:
-        return "❌ Error: Cannot connect to RecallAI server. Make sure it's running on http://localhost:8000", ""
+        return "❌ Error: Cannot connect to RecallAI server. Make sure it's running on http://localhost:8000", "", {}
     except requests.exceptions.Timeout:
-        return "❌ Error: Search timed out. Try a simpler query or reduce top_k.", ""
+        return "❌ Error: Search timed out. Try a simpler query or reduce top_k.", "", {}
     except requests.exceptions.RequestException as e:
-        return f"❌ Error searching: {str(e)}", ""
+        return f"❌ Error searching: {str(e)}", "", {}
 
 
 def _format_search_results(result: dict) -> Tuple[str, str]:
@@ -271,10 +351,44 @@ def create_interface() -> gr.Blocks:
             gr.Markdown("### Chunks Detail")
             chunks_output = gr.Markdown(label="Matching Chunks", visible=True)
 
+            # Feedback section
+            gr.Markdown("---")
+            gr.Markdown("### 📝 Feedback")
+            gr.Markdown("Help us improve by providing feedback on the search results.")
+
+            with gr.Row():
+                feedback_positive_btn = gr.Button("👍 Helpful", variant="secondary")
+                feedback_negative_btn = gr.Button("👎 Not Helpful", variant="secondary")
+
+            feedback_comment = gr.Textbox(
+                label="Optional Comment",
+                placeholder="Any additional comments about the results...",
+                lines=2
+            )
+
+            feedback_status = gr.Textbox(label="Feedback Status", interactive=False, lines=1)
+
+            # Hidden state to store search metadata
+            search_metadata = gr.State({})
+
+            # Wire up search
             search_btn.click(
                 fn=search_query,
                 inputs=[query_input, mode_radio, search_in_radio, top_k_slider],
-                outputs=[results_output, chunks_output]
+                outputs=[results_output, chunks_output, search_metadata]
+            )
+
+            # Wire up feedback buttons
+            feedback_positive_btn.click(
+                fn=lambda metadata, comment: save_feedback(metadata, "positive", comment),
+                inputs=[search_metadata, feedback_comment],
+                outputs=[feedback_status]
+            )
+
+            feedback_negative_btn.click(
+                fn=lambda metadata, comment: save_feedback(metadata, "negative", comment),
+                inputs=[search_metadata, feedback_comment],
+                outputs=[feedback_status]
             )
 
         gr.Markdown("""
