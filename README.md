@@ -39,7 +39,7 @@ RecallAI transforms your local files into a searchable knowledge base. It uses s
 ## Design and Design Decisions
 
 - Every single design decisions and ADR files are present here - [docs/decisions](docs/decisions)  
-📐📐📐 See [docs/designs.md](docs/designs.md) for detailed design decisions and architecture choices.
+- 📐📐📐 See [docs/designs.md](docs/designs.md) for detailed design flows.
 
 ## Architecture
 
@@ -129,5 +129,3 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - [LangChain](https://www.langchain.com/) for text processing utilities
 
 ---
-
-**Made with ❤️ for local-first AI**
