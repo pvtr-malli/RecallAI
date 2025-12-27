@@ -104,28 +104,6 @@ ollama pull llama3.1:8b-instruct-q4_0
 - Use "search" mode instead of "answer" mode
 - Increase RAM allocation if using Docker
 
-
-## Documentation
-
-- [API Reference](docs/API.md) - Complete REST API documentation
-- [Docker Guide](DOCKER.md) - Container deployment
-- [Quick Start](QUICKSTART.md) - Detailed setup guide
-- [Requirements](REQUIREMENTS.md) - Full project specification
-
 ## Contributing
 
 This is a learning project built to explore semantic search and local LLMs. Contributions, issues, and feature requests are welcome!
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- [Sentence Transformers](https://www.sbert.net/) for document embeddings
-- [Jina AI](https://jina.ai/) for code embeddings
-- [FAISS](https://github.com/facebookresearch/faiss) by Meta for vector search
-- [Ollama](https://ollama.ai/) for local LLM runtime
-- [LangChain](https://www.langchain.com/) for text processing utilities
-
----
