@@ -18,8 +18,58 @@ RecallAI transforms your local files into a searchable knowledge base. It uses s
 - 📝 **Multiple Formats** - Documents (`.txt`, `.md`, `.pdf`), Code (`.py`), Notebooks (`.ipynb`)
 - 🔄 **Incremental Indexing** - Only re-processes changed files
 - 📊 **Dual Embedding Models** - Specialized embeddings for documents (384-dim) and code (768-dim)
-- 🖥️ **Simple UI** - Clean Gradio interface with feedback system
-- 🔌 **REST API** - Full-featured API for programmatic access
+
+## Design and Design Decisions
+
+### Architecture Decision Records (ADRs)
+
+| ADR | Decision | Description |
+|-----|----------|-------------|
+| [ADR-001](docs/decisions/ADR_001_vector_store_selection.md) | Vector Store Selection | Chose FAISS for offline, local vector search with minimal overhead |
+| [ADR-002](docs/decisions/ADR_002_embeddings_selection.md) | Embedding Strategy | Dual-index approach for documents and code with separate embeddings |
+| [ADR-003](docs/decisions/ADR_003_embedding_models_selection.md) | Embedding Models | Selected MiniLM-L6 (384-dim) for docs, Jina-v2 (768-dim) for code |
+| [ADR-004](docs/decisions/ADR_004_how_to_handle_code_files.md) | Code & Notebook Ingestion | Strategy for handling .py files and .ipynb with mixed content |
+| [ADR-005](docs/decisions/ADR_005_re-indeing_stratergy_selection.md) | Re-indexing Strategy | Incremental indexing using file hashes to skip unchanged files |
+| [ADR-006](docs/decisions/ADR_006_FLAT_vs_HNSW.md) | FAISS Index Type | Chose HNSW over Flat for scalability and speed-accuracy tradeoff |
+| [ADR-007](docs/decisions/ADR_007_llm_model_selection.md) | LLM Model Selection | Selected llama3.1:8b-instruct with q4_0 quantization for local inference |
+| [ADR-008](docs/decisions/ADR_008_caching_decision.md) | Caching Strategy | Rejected caching (Redis/in-memory) due to low hit rate and re-indexing |
+
+📐 See [docs/decisions](docs/decisions) for more details.
+📐 See [docs/designs.md](docs/designs.md) for detailed design flows and diagrams.
+
+## Performance Benchmarks
+
+### Search Mode Latency
+
+| Metric | Value | Description |
+|--------|-------|-------------|
+| **Min** | 6.96ms | Fastest query response |
+| **P50** | 9.70ms | Median (50% of queries faster) |
+| **Mean** | 9.96ms | Average response time |
+| **P90** | 11.13ms | 90% of queries faster than this |
+| **P95** | 11.66ms | 95% of queries faster than this |
+| **Max** | 33.24ms | Slowest query response |
+
+*Based on 160 test runs. Pure API performance without UI overhead.*
+
+### Answer Mode Latency
+
+| Metric | Value | Description |
+|--------|-------|-------------|
+| **Min** | 628ms | Fastest LLM response |
+| **P50** | 2.41s | Median (50% of queries faster) |
+| **Mean** | 2.62s | Average response time |
+| **P90** | 4.65s | 90% of queries faster than this |
+| **P95** | 4.80s | 95% of queries faster than this |
+| **Max** | 5.59s | Slowest LLM response |
+
+*Based on 48 test runs. Includes semantic search + LLM inference time.*
+
+**Note**: Browser UI adds ~75-150ms overhead for search mode due to Gradio framework and rendering. For answer mode, this overhead is negligible compared to LLM inference time.
+
+## Architecture
+
+TODO
 
 ## Performance
 
@@ -36,14 +86,7 @@ RecallAI transforms your local files into a searchable knowledge base. It uses s
 - ✨ **Simple** - Clean architecture, no over-engineering
 - 🚀 **Fast** - Optimized for low-latency queries
 
-## Design and Design Decisions
 
-- Every single design decisions and ADR files are present here - [docs/decisions](docs/decisions)  
-- 📐📐📐 See [docs/designs.md](docs/designs.md) for detailed design flows.
-
-## Architecture
-
-TODO
 
 
 ## Quick Start

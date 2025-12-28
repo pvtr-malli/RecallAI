@@ -30,32 +30,42 @@ RecallAI will use:
 
 * An **instruction-tuned LLM**
 * A **Q4 quantized version** of the model
+* Deployed via **Ollama** for local inference
 
 Specifically:
 
-* **Model type:** mistralai/Mistral-7B-Instruct
-* **Quantization:** Q4 (4-bit)
+* **Model:** Llama 3.1 8B Instruct
+* **Quantization:** Q4_0 (4-bit)
+* **Deployment:** Ollama (`llama3.1:8b-instruct-q4_0`)
 
 ---
 
 ## Rationale
 
-### Why Instruction-Tuned Model - mistralai/Mistral-7B-Instruct
+### Why Instruction-Tuned Model (Llama 3.1 8B Instruct)
 
 Instruction-tuned models are trained to:
 
 * Follow user instructions
 * Answer questions directly
+* Perform well on retrieval-augmented generation (RAG) tasks
 
-RecallAI’s primary task is:
+RecallAI's primary task is:
 
-> *“Answer my question using only the retrieved local context.”*
+> *"Answer my question using only the retrieved local context."*
 
 Base (non-instruct) models:
 
 * Generate raw text
-* Require prompt engineering to behave correctly
+* Require extensive prompt engineering to behave correctly
 * May ignore instructions or hallucinate more easily
+
+**Why Llama 3.1 8B Instruct:**
+
+* Strong instruction following and reasoning capabilities
+* Excellent performance on RAG tasks
+* Good balance between model size (8B parameters) and quality
+* Wide community support and documentation
 
 Using an instruction-tuned model:
 
@@ -65,24 +75,36 @@ Using an instruction-tuned model:
 
 ---
 
-### Why Q4 Quantization
+### Why Q4_0 Quantization
 
 Quantization reduces model size and memory usage by lowering numeric precision.
 
-**Q4 (4-bit) quantization provides:**
+**Q4_0 (4-bit) quantization provides:**
 
-* ~75% memory reduction compared to full precision
+* ~75% memory reduction compared to full precision (~4.5GB vs ~16GB)
 * Faster inference on CPU
-* Ability to run 7B–8B models on consumer hardware
+* Ability to run 8B models on consumer hardware
 * Acceptable quality loss for question-answering tasks
+* Median answer latency of ~2.4s on CPU
 
 Higher precision (Q8):
 
-* Uses significantly more memory
+* Uses significantly more memory (~8GB)
 * Offers marginal quality improvement
 * Increases latency and hardware requirements
 
-Given RecallAI’s local, offline constraints, Q4 offers the best trade-off.
+Given RecallAI's local, offline constraints, Q4_0 offers the best trade-off.
+
+### Why Ollama
+
+Ollama provides:
+
+* Simple model management (`ollama pull`, `ollama serve`)
+* Automatic model quantization handling
+* REST API for local inference
+* Cross-platform support (macOS, Linux, Windows)
+* No complex setup or configuration
+* Built-in model caching and optimization
 
 ---
 
@@ -94,19 +116,27 @@ Given RecallAI’s local, offline constraints, Q4 offers the best trade-off.
 
 ### Mistral-7B-Instruct
 
-* Strong and efficient
-* Slightly weaker instruction adherence and reasoning compared to Llama-3.1-Instruct based on benchmarks from huggingface and practical evaluations
+* Strong and efficient model
+* Smaller (7B vs 8B parameters)
+* Slightly weaker instruction adherence and reasoning compared to Llama 3.1 8B Instruct
+* Less community support for RAG use cases
+
+**Decision:** Chose Llama 3.1 8B Instruct for better RAG performance
 
 ### Q8 Quantization
 
-* Better quality
+* Better quality (~8GB model size)
 * Higher memory usage
-* Not necessary for RecallAI’s current QA-focused use case
+* Slower inference (~3-4s median latency)
+* Not necessary for RecallAI's current QA-focused use case
+
+**Decision:** Q4_0 provides acceptable quality with 2x faster inference
 
 ### Full Precision (FP16 / FP32)
 
-* Not feasible for local deployment
+* Not feasible for local deployment (~16GB+ model size)
 * Excessive resource requirements
+* Extremely slow on CPU
 
 ---
 
