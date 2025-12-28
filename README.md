@@ -69,7 +69,7 @@ RecallAI transforms your local files into a searchable knowledge base. It uses s
 
 ## Architecture
 
-TODO
+<img src="images/recall_flow.jpg" height=1000 width=900>
 
 ## Performance
 

@@ -117,7 +117,7 @@ User (CLI / UI)
                   │              │                    │
                   │              ▼                    ▼
                   │     Code Embedder         Code Embedder
-                  │       (CodeBERT)            (CodeBERT)
+                  │           (jina)               (jina)
                   │              │                    │
                   ▼              ▼                    ▼
          FAISS Index (Docs)      │                    │
@@ -179,15 +179,11 @@ File Change Detection:
                         Query API (FastAPI)
                                  │
                                  ▼
-                           Parse Query
-                      (query, top_k, search_in)
-                                 │
-                                 ▼
                     Validate search_in filter
                    (documents | code | both)
                                  │
                                  ▼
-                    Embed Query (SBERT)
+                       Embed Query (SBERT)
                                  │
                   ┌──────────────┼──────────────┐
                   │                             │
@@ -222,7 +218,7 @@ File Change Detection:
                   │                    Build LLM Prompt
                   │                             │
                   │                             ▼
-                  │              LLM (Ollama/OpenAI/Anthropic)
+                  │                       LLM (Ollama)
                   │                             │
                   ▼                             ▼
          Return File metadata        Return answer + sources
