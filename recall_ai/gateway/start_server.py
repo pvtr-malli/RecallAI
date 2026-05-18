@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Start the RecallAI FastAPI server."""
 
+import threading
 import uvicorn
 import yaml
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from recall_ai.utils.config import load_config
 from recall_ai.utils.scanner import scan_files
@@ -31,6 +32,9 @@ logger = get_logger(__name__)
 
 
 app = FastAPI(title="RecallAI", description="Intelligent local file search system.")
+
+# Prevents concurrent indexing operations from corrupting FAISS files on disk.
+_index_lock = threading.Lock()
 
 
 # Initialize search processor once at module load time
@@ -62,6 +66,25 @@ search_processor = _initialize_search_processor()
 def index_files(rebuild: bool = False) -> IndexResponse:
     """
     Index files from configured folders.
+
+    param rebuild: If True, clear existing index and rebuild from scratch.
+    """
+    # _index_lock.acquire -> returns True -> you get the lock.
+    # _index_lock.acquire -> returns False -> someone is having the lock.
+    if not _index_lock.acquire(blocking=False):
+        raise HTTPException(
+            status_code=409,
+            detail="Indexing already in progress. Wait for the current operation to complete."
+        )
+    try:
+        return _run_indexing(rebuild)
+    finally:
+        _index_lock.release()
+
+
+def _run_indexing(rebuild: bool) -> IndexResponse:
+    """
+    Execute the indexing pipeline.
 
     param rebuild: If True, clear existing index and rebuild from scratch.
     """
@@ -181,6 +204,9 @@ def index_files(rebuild: bool = False) -> IndexResponse:
     code_faiss.save()
     logger.info(f"Indexing complete. Total chunks in metadata: {metadata_store.get_total_chunks()}")
 
+    # Reload the global search processor so queries immediately use the new index.
+    search_processor.reload_indexes()
+
     return IndexResponse(
         total_files=len(files),
         classified=classified_counts,
@@ -231,7 +257,18 @@ def search_documents(request: SearchRequest):
     """
     logger.info(f"Searching for: {request.query} (mode={request.mode})")
 
-    # Use global search processor (embedders already loaded in memory)
+    # Check if indexing is in progress using the same lock.
+    # we try to get the lock, if we are able to get it, then the lock is free release it and sreach.
+    # _index_lock.acquire -> returns True -> you get the lock.
+    # _index_lock.acquire -> returns False -> someone is having the lock.
+    if not _index_lock.acquire(blocking=False):
+        raise HTTPException(
+            status_code=503,
+            detail="Indexing in progress. Please wait for it to finish before searching."
+        )
+    # Not indexing — release immediately and proceed with search.
+    _index_lock.release()
+
     return search_processor.process_search(request)
 
 

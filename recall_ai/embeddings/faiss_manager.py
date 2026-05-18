@@ -74,6 +74,13 @@ class FAISSManager:
         """
         return self.index.ntotal
 
+    def reload(self) -> None:
+        """
+        Reload index from disk, replacing the in-memory index.
+        """
+        logger.info(f"Reloading FAISS index from {self.index_path}")
+        self.index = self._load_or_create_index()
+
     def reset(self) -> None:
         """
         Reset index to empty state.

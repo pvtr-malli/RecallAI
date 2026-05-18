@@ -47,6 +47,15 @@ class SearchProcessor:
 
         self.metadata_store = MetadataStore(db_path)
 
+    def reload_indexes(self) -> None:
+        """
+        Reload FAISS indexes from disk after a fresh indexing run.
+        """
+        logger.info("Reloading FAISS indexes from disk.")
+        self.doc_faiss.reload()
+        self.code_faiss.reload()
+        logger.info("FAISS indexes reloaded.")
+
     def process_search(
         self,
         request: SearchRequest
